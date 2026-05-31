@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="JustJoinITBackend.Common/JustJoinITBackend.Common.csproj" Id="97c36047-0de7-432e-8f29-1e4173e4047a" />
+  <Project Path="JustJoinITBackend.Web/JustJoinITBackend.Web.csproj">
+    <BuildDependency Project="JustJoinITBackend.Common/JustJoinITBackend.Common.csproj" />
+  </Project>
+  <Project Path="JustJoinITBackend.Worker/JustJoinITBackend.Worker.csproj" Id="11075d6c-c404-4382-8d32-6b53e8a69d17">
+    <BuildDependency Project="JustJoinITBackend.Common/JustJoinITBackend.Common.csproj" />
+  </Project>
+</Solution>

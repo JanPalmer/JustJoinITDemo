@@ -1,0 +1,6 @@
+@justjoinit_backend.Server_HostAddress = http://localhost:5215
+
+GET {{justjoinit_backend.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
