@@ -1,5 +1,6 @@
 ﻿using JustJoinITBackend.Common;
 using JustJoinITBackend.Common.Models;
+using JustJoinITBackend.Worker.Services.ConnectorService;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,20 +11,23 @@ namespace JustJoinITBackend.Worker.Services;
 public class PromptProcessor : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly OllamaConnector _ollama;
+    private readonly IConnectorService _connectorService;
+
     private readonly TimeSpan _pollingInterval;
 
     private const int DefaultPollingIntervalInSeconds = 5;
+    private const string ModelAPIConnectionErrorMessage = "Error connecting to the model. Please try again later.";
 
     public PromptProcessor(
         IServiceScopeFactory scopeFactory,
-        OllamaConnector ollama,
-        IConfiguration config)
+        IConfiguration config,
+        IConnectorService connectorService
+        )
     {
         _scopeFactory = scopeFactory;
-        _ollama = ollama;
+        _connectorService = connectorService;
 
-        var intervalFromConfig = config["Worker:PollingIntervalInSeconds"];
+        var intervalFromConfig = config["WorkerSettings:PollingIntervalInSeconds"];
         var interval = int.TryParse(intervalFromConfig, out var seconds) ? seconds : DefaultPollingIntervalInSeconds;
 
         _pollingInterval = TimeSpan.FromSeconds(interval);
@@ -51,48 +55,91 @@ public class PromptProcessor : BackgroundService
         }
     }
 
-    private async Task ProcessNextPendingAsync(CancellationToken ct)
+    private async Task ProcessNextPendingAsync(CancellationToken cancellationToken)
     {
-        // Nowy scope na każdą iterację — DbContext jest Scoped, Worker jest Singleton
         using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<JustJoinITBackendDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<JustJoinITBackendDbContext>();
 
-        // Pobierz najstarszy oczekujący prompt
-        var prompt = await db.Prompts
+        var prompt = await dbContext.Prompts
+            .Include(p => p.Model)
             .Where(p => p.Status == DbPromptStatus.Pending)
             .OrderBy(p => p.CreatedAt)
             .FirstOrDefaultAsync();
 
-        if (prompt is null)
+        if (prompt == null)
         {
-            //_logger.LogDebug("Brak promptów do przetworzenia.");
             return;
         }
 
-        await SetStatusAsync(db, prompt, DbPromptStatus.Processing, ct);
+        await UpdatePrompt(
+            dbContext,
+            prompt,
+            DbPromptStatus.Processing,
+            cancellationToken: cancellationToken);
 
         try
         {
-            var result = await _ollama.CompleteAsync(prompt.Content, ct);
+            var modelConnector = _connectorService.GetModelConnector(prompt.Model.Name);
 
-            prompt.Result = result;
-            await SetStatusAsync(db, prompt, DbPromptStatus.Completed, ct);
+            if (modelConnector == null)
+            {
+                throw new InvalidOperationException($"Model not found - {prompt.Model.Name}");
+            }
+
+            var result = await modelConnector.SendPrompt(prompt.Model.Name, prompt.Content, cancellationToken);
+
+            if (result != null)
+            {
+                await UpdatePrompt(
+                    dbContext,
+                    prompt,
+                    DbPromptStatus.Completed,
+                    result: result,
+                    cancellationToken: cancellationToken);
+            }
+            else
+            {
+                await UpdatePrompt(
+                    dbContext,
+                    prompt,
+                    DbPromptStatus.Failed,
+                    errorMessage: ModelAPIConnectionErrorMessage,
+                    cancellationToken: cancellationToken);
+            }
         }
         catch (Exception ex)
         {
-            prompt.ErrorMessage = ex.Message;
-            await SetStatusAsync(db, prompt, DbPromptStatus.Failed, ct);
+            // Log exception
+            await UpdatePrompt(
+                dbContext,
+                prompt,
+                DbPromptStatus.Failed,
+                errorMessage: ModelAPIConnectionErrorMessage,
+                cancellationToken: cancellationToken);
         }
     }
 
-    private static async Task SetStatusAsync(
-        JustJoinITBackendDbContext db,
+    private static async Task UpdatePrompt(
+        JustJoinITBackendDbContext dbContext,
         DbPrompt prompt,
         DbPromptStatus status,
-        CancellationToken ct)
+        string? result = null,
+        string? errorMessage = null,
+        CancellationToken cancellationToken = default)
     {
         prompt.Status = status;
         prompt.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
+
+        if (result != null)
+        {
+            prompt.Result = result;
+        }
+
+        if (errorMessage != null)
+        {
+            prompt.ErrorMessage = errorMessage;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

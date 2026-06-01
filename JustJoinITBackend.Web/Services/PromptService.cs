@@ -1,6 +1,7 @@
 ﻿using JustJoinITBackend.Common;
 using JustJoinITBackend.Common.Models;
 using JustJoinITBackend.Web.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace JustJoinITBackend.Web.Services;
 
@@ -8,12 +9,17 @@ public class PromptService(JustJoinITBackendDbContext dbContext)
 {
     public List<PromptDto> GetAllPrompts()
     {
-        return dbContext.Prompts.Select(p => PromptDto.FromDbPrompt(p)).ToList();
+        return FindPrompts()
+            .AsNoTracking()
+            .Select(PromptDto.FromDbPrompt)
+            .ToList();
     }
 
     public PromptDto? GetPrompt(int id)
     {
-        var prompt = dbContext.Prompts.FirstOrDefault(x => x.Id == id);
+        var prompt = FindPrompts()
+            .AsNoTracking()
+            .FirstOrDefault(x => x.Id == id);
 
         if (prompt != null)
         {
@@ -27,6 +33,7 @@ public class PromptService(JustJoinITBackendDbContext dbContext)
     {
         var newPrompt = new DbPrompt
         {
+            ModelId = request.ModelId,
             Content = request.Content,
             Status = DbPromptStatus.Pending,
             CreatedAt = DateTime.UtcNow,
@@ -35,9 +42,16 @@ public class PromptService(JustJoinITBackendDbContext dbContext)
 
         var addedPrompt = await dbContext.Prompts.AddAsync(newPrompt);
         await dbContext.SaveChangesAsync();
+        await dbContext.Entry(newPrompt).Reference(p => p.Model).LoadAsync();
 
-        var result = PromptDto.FromDbPrompt(addedPrompt.Entity);
+        var result = PromptDto.FromDbPrompt(newPrompt);
 
         return result;
+    }
+
+    private IQueryable<DbPrompt> FindPrompts()
+    {
+        return dbContext.Prompts
+            .Include(x => x.Model);
     }
 }

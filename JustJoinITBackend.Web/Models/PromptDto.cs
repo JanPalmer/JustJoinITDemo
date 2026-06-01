@@ -1,10 +1,12 @@
 ﻿using JustJoinITBackend.Common.Models;
+using JustJoinITBackend.Web.Infrastructure;
 
 namespace JustJoinITBackend.Web.Models;
 
 public class PromptDto
 {
     public int Id { get; set; }
+    public string ModelName { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public PromptStatus Status { get; set; }
 
@@ -16,8 +18,9 @@ public class PromptDto
         return new PromptDto
         {
             Id = dbPrompt.Id,
+            ModelName = dbPrompt.Model.Name,
             Content = dbPrompt.Content,
-            Status = (PromptStatus)dbPrompt.Status,
+            Status = PromptStatusConverter.ConvertPromptStatus(dbPrompt.Status),
             Result = dbPrompt.Result,
             ErrorMessage = dbPrompt.ErrorMessage
         };

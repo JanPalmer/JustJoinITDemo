@@ -14,10 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Infrastructure\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\JustJoinITBackend.Common\JustJoinITBackend.Common.csproj" />
   </ItemGroup>
 
