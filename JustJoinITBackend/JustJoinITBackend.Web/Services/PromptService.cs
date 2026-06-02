@@ -11,6 +11,7 @@ public class PromptService(JustJoinITBackendDbContext dbContext)
     {
         return FindPrompts()
             .AsNoTracking()
+            .OrderByDescending(x => x.CreatedAt)
             .Select(PromptDto.FromDbPrompt)
             .ToList();
     }
