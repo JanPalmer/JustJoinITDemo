@@ -9,6 +9,7 @@ static public class SetupExtensions
     {
         builder.Services.AddDbContext<JustJoinITBackendDbContext>();
 
+        builder.Services.AddScoped<ModelService>();
         builder.Services.AddScoped<PromptService>();
     }
 
