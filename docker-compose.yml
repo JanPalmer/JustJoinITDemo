@@ -1,0 +1,39 @@
+services:
+  backend:
+    build:
+      context: ./JustJoinITBackend
+      dockerfile: Dockerfile.web
+    ports:
+      - "5161:8080"
+    volumes:
+      - db-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/models"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  worker:
+    build:
+      context: ./JustJoinITBackend
+      dockerfile: Dockerfile.worker
+    volumes:
+      - db-data:/data
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./JustJointITFrontend/justjoinit-frontend
+      args:
+        BACKEND_URL: http://backend:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  db-data:
