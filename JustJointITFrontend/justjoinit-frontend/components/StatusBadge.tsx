@@ -1,4 +1,4 @@
-import { PromptStatus } from "@/app/lib/types";
+import { PromptStatus } from "@/lib/types";
 
 const STATUS_LABEL: Record<PromptStatus, string> = {
   [PromptStatus.Unknown]: "Unknown",

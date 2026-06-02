@@ -1,6 +1,6 @@
 "use client";
 
-import { Model } from "@/app/lib/types";
+import { Model } from "@/lib/types";
 
 interface PromptFormProps {
   models: Model[];

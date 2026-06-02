@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Model, Prompt, PromptStatus } from "@/app/lib/types";
-import { getModels, getAllPrompts, submitPrompt } from "@/app/lib/api";
-import { usePolling } from "@/app/hooks/usePolling";
-import PromptForm from "@/app/components/PromptForm";
-import PromptCard from "@/app/components/PromptCard";
+import { Model, Prompt, PromptStatus } from "@/lib/types";
+import { getModels, getAllPrompts, submitPrompt } from "@/lib/api";
+import { usePolling } from "@/hooks/usePolling";
+import PromptForm from "@/components/PromptForm";
+import PromptCard from "@/components/PromptCard";
 
 export default function PromptApp() {
   const [models, setModels] = useState<Model[]>([]);

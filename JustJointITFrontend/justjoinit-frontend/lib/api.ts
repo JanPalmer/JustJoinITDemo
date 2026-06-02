@@ -1,4 +1,4 @@
-import { Model, Prompt, AddPromptRequest } from "@/app/lib/types";
+import { Model, Prompt, AddPromptRequest } from "@/lib/types";
 
 export async function getModels(): Promise<Model[]> {
   const res = await fetch("/api/models");

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Prompt, PromptStatus } from "@/app/lib/types";
-import { getPrompt } from "@/app/lib/api";
+import { Prompt, PromptStatus } from "@/lib/types";
+import { getPrompt } from "@/lib/api";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -38,7 +38,7 @@ export function usePolling(
       );
 
       setPrompts((prev) =>
-        prev.map((p) => updated.find((u) => u.id === p.id) ?? p)
+        prev.map((p) => updated.find((u: Prompt) => u.id === p.id) ?? p)
       );
     }, POLL_INTERVAL_MS);
 

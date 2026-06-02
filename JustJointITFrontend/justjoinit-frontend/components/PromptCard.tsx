@@ -1,5 +1,5 @@
-import { Prompt, PromptStatus } from "@/app/lib/types";
-import StatusBadge from "@/app/components/StatusBadge";
+import { Prompt, PromptStatus } from "@/lib/types";
+import StatusBadge from "@/components/StatusBadge";
 
 export default function PromptCard({ prompt }: { prompt: Prompt }) {
     switch (prompt.status) {
